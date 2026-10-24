@@ -1,0 +1,81 @@
+title,author,category,rack_no,available_copies
+Python Programming,John Sharp,Computer Science,A1,3
+Data Structures,Narasimha Karumanchi,Computer Science,A2,2
+Artificial Intelligence,Stuart Russell,Computer Science,A3,2
+Machine Learning,Tom Mitchell,Computer Science,A4,5
+DBMS,Raghu Ramakrishnan,Computer Science,B1,1
+Operating Systems,Galvin,Computer Science,B2,4
+Computer Networks,Tanenbaum,Computer Science,B3,3
+Algorithm Design,Kleinberg,Computer Science,B4,2
+Deep Learning,Ian Goodfellow,Computer Science,C1,3
+Cyber Security,William Stallings,Computer Science,C2,1
+Java Programming,Herbert Schildt,Computer Science,A5,4
+C++ Programming,Bjarne Stroustrup,Computer Science,A6,2
+Web Development,Jon Duckett,Computer Science,A7,3
+Cloud Computing,Rajkumar Buyya,Computer Science,A8,1
+Blockchain Basics,Don Tapscott,Computer Science,A9,2
+Data Science Handbook,Jake VanderPlas,Computer Science,B5,3
+Big Data Analytics,Anand Rajaraman,Computer Science,B6,2
+Software Engineering,Roger Pressman,Computer Science,B7,5
+Compiler Design,Aho Ullman,Computer Science,B8,1
+Theory of Computation,Michael Sipser,Computer Science,C3,2
+Artificial Neural Networks,Simon Haykin,Computer Science,C4,3
+Natural Language Processing,Daniel Jurafsky,Computer Science,C5,2
+Computer Graphics,Donald Hearn,Computer Science,C6,1
+IoT Fundamentals,David Hanes,Computer Science,C7,4
+Ethical Hacking,Ankit Fadia,Computer Science,C8,2
+Python for Data Analysis,Wes McKinney,Computer Science,D1,3
+React JS Guide,Kirupa Chinnathambi,Computer Science,D2,2
+Node JS in Action,Mike Cantelon,Computer Science,D3,1
+Django for Beginners,William Vincent,Computer Science,D4,3
+DevOps Handbook,Gene Kim,Computer Science,D5,2
+Kubernetes Up & Running,Kelsey Hightower,Computer Science,D6,1
+Linux Commands,William Shotts,Computer Science,D7,4
+SQL Mastery,Alan Beaulieu,Computer Science,D8,3
+NoSQL Distilled,Pramod Sadalage,Computer Science,E1,2
+Android Development,Reto Meier,Computer Science,E2,3
+iOS Programming,Christian Keur,Computer Science,E3,1
+Game Development,John Horton,Computer Science,E4,2
+AR VR Basics,Tony Parisi,Computer Science,E5,1
+Quantum Computing,Nielsen Chuang,Computer Science,E6,2
+Robotics Programming,Cameron Hughes,Computer Science,E7,3
+Data Mining,Jiawei Han,Computer Science,E8,2
+Information Retrieval,Christopher Manning,Computer Science,F1,1
+Computer Architecture,David Patterson,Computer Science,F2,3
+Microprocessors,Ramesh Gaonkar,Computer Science,F3,2
+Digital Logic,Morris Mano,Computer Science,F4,4
+Discrete Mathematics,Kenneth Rosen,Computer Science,F5,3
+Cryptography,Bruce Schneier,Computer Science,F6,1
+Object Oriented Design,Grady Booch,Computer Science,F7,2
+System Design Interview,Alex Xu,Computer Science,F8,5
+Clean Code,Robert Martin,Computer Science,F9,3
+John Wick,Derek Kolstad,Action,AC1,2
+Die Hard,Roderick Thorp,Action,AC2,1
+Mission Impossible,Bruce Geller,Action,AC3,0
+Jack Reacher,Lee Child,Action,AC4,3
+Bourne Identity,Robert Ludlum,Action,AC5,2
+The Avengers,Stan Lee,Action,AC6,4
+Black Panther,Ta-Nehisi Coates,Action,AC7,2
+Mad Max,George Miller,Action,AC8,1
+Fast and Furious,Gary Scott,Action,AC9,3
+Gladiator,William Nicholson,Action,AC10,2
+Harry Potter,J.K Rowling,Fantasy,FA1,1
+The Hobbit,J.R.R Tolkien,Fantasy,FA2,2
+Game of Thrones,George R.R Martin,Fantasy,FA3,3
+Percy Jackson,Rick Riordan,Fantasy,FA4,2
+Lord of the Rings,J.R.R Tolkien,Fantasy,FA5,1
+Chronicles of Narnia,C.S Lewis,Fantasy,FA6,3
+Eragon,Christopher Paolini,Fantasy,FA7,2
+Mistborn,Brandon Sanderson,Fantasy,FA8,1
+His Dark Materials,Philip Pullman,Fantasy,FA9,4
+The Wheel of Time,Robert Jordan,Fantasy,FA10,2
+The Alchemist,Paulo Coelho,Knowledge,K1,5
+Sapiens,Yuval Noah Harari,Knowledge,K2,2
+Atomic Habits,James Clear,Knowledge,K3,3
+Wings of Fire,A.P.J Abdul Kalam,Knowledge,K4,4
+Ikigai,Hector Garcia,Knowledge,K5,3
+Think and Grow Rich,Napoleon Hill,Knowledge,K6,0
+Rich Dad Poor Dad,Robert Kiyosaki,Knowledge,K7,2
+The Power of Habit,Charles Duhigg,Knowledge,K8,1
+Man's Search for Meaning,Viktor Frankl,Knowledge,K9,3
+Jurassic Park,Michael Crichton,Dino,FA11,3
