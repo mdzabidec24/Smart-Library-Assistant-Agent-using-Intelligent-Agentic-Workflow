@@ -1,0 +1,29 @@
+# Virtual Environment - Very Important!
+venv/
+env/
+ENV/
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+**/__pycache__/
+*.egg-info/
+
+# VS Code settings
+.vscode/
+
+# Secrets - Never push to GitHub!
+.env
+.streamlit/
+secrets.toml
+
+# OS junk files
+.DS_Store
+Thumbs.db
+*.log
+
+# Gemini API keys or other keys
+*.key
