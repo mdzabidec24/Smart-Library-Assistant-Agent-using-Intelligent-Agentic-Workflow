@@ -112,7 +112,6 @@ def router_node(state: AgentState):
         if cat in q and len(cat) > 2 and cat != "computer science":
             return {"intent": "search"}
 
-    # FIX: Any query with "book" word = book search (so computer books in dataset still work)
     if "book" in q:
         return {"intent": "search"}
 
@@ -128,7 +127,6 @@ def router_node(state: AgentState):
     if "how many" in q and "category" in q:
         return {"intent": "count"}
 
-    # FIXED: Removed "computer" from here - so "what is computer" goes to LLM not I-don't-know
     book_keywords = ["book","books","rack","copies","author","genre","category","fantasy","action","dino","knowledge","microprocessor","compiler","operating","cryptography","jurassic","system design","game","ios","networks"]
     library_keywords = ["library","manager","manger","librarian","fine","payment","issue","rule","rules","timing","open","closed","libray","monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
     if not any(k in q for k in book_keywords + library_keywords):
@@ -257,7 +255,6 @@ def search_node(state: AgentState):
     df['available_copies'] = pd.to_numeric(df['available_copies'], errors='coerce').fillna(0).astype(int)
     result = search_books_core(state["current_query"], df, llm)
     if isinstance(result, str) and "No books found" in result:
-        # If user asked computer book but title not exact, show CS books instead of sorry
         qlow = state["current_query"].lower()
         if "computer" in qlow and "book" in qlow:
             cs = df[df['category'].str.lower().str.contains("computer", na=False)]
@@ -342,13 +339,13 @@ def add_history(role, content):
 
 for msg in st.session_state.chat_history:
     with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+        st.markdown(f"<p style='font-size:17px;'>{msg['content']}</p>", unsafe_allow_html=True)
 
 prompt = st.chat_input("Ask about books...")
 
 if prompt:
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(f"<p style='font-size:17px;'>{prompt}</p>", unsafe_allow_html=True)
     add_history("user", prompt)
     result = app_graph.invoke({
         "current_query": prompt,
@@ -363,5 +360,5 @@ if prompt:
         st.session_state.graph_state["last_book"] = result["last_book"]
     st.session_state.graph_state["last_answer"] = ans
     with st.chat_message("assistant"):
-        st.markdown(ans)
+        st.markdown(f"<p style='font-size:17px;'>{ans}</p>", unsafe_allow_html=True)
     add_history("assistant", ans)
