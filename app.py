@@ -51,7 +51,6 @@ def contains_book_title(q, df):
 def router_node(state: AgentState):
     q = state["current_query"].lower().strip()
     
-    # 1. GIBBERISH FIRST -> DON'T KNOW
     if is_gibberish_token(q):
         return {"intent": "out_of_knowledge"}
     
@@ -59,19 +58,16 @@ def router_node(state: AgentState):
         df_check = pd.read_csv("data/library.csv")
         has_title = contains_book_title(q, df_check)
         categories = [str(c).lower() for c in df_check['category'].unique()]
-        all_titles = [str(t).lower() for t in df_check['title'].astype(str)]
     except:
         has_title = False
         categories = []
-        all_titles = []
 
-    # 2. MANAGER - ONLY exact spelling
+    if q in ["hi","hello","hey","hai","hii","heya","yo","hola","namaste","bye","goodbye","see ya","tata","ok bye"]:
+        return {"intent": "greeting"}
+    if q.startswith(("hi ","hello ","hey ","hai ")) and len(q.split()) <= 2 and "book" not in q:
+        return {"intent": "greeting"}
     if "manager" in q or "manger" in q or "librarian" in q:
         return {"intent": "manager"}
-
-    # 3. GREETINGS
-    if q in ["hi","hello","hey","hai","hii","heya","yo","hola","namaste","bye","goodbye"]:
-        return {"intent": "greeting"}
     if q in ["repeat","repeat that","say again","again"]:
         return {"intent": "repeat"}
     if "fine" in q:
@@ -80,51 +76,61 @@ def router_node(state: AgentState):
         return {"intent": "payment_rule"}
     if "issue" in q and ("rule" in q or "book" in q):
         return {"intent": "issue_rule"}
-    if "library rules" in q or q.strip() in ["rules","rule"]:
-        return {"intent": "library_info"}
-    if q in ["who are you","what are you","who r you"]:
-        return {"intent": "who_are_you"}
-    if "library" in q:
+    if "library" in q and ("where" in q or "rule" in q or "time" in q or "open" in q or q == "library" or "libray" in q):
         return {"intent": "library_info"}
     if any(w in q for w in ["stock","share","nifty","sensex"]):
         return {"intent": "general_knowledge_block"}
 
-    # 4. BOOK NOT FOUND CASE - ONLY if asks about a title book
-    if any(phrase in q for phrase in ["is there a book","is there book","book called","book named","is there a title","book related to cars","book related to ghost","book about cars"]):
-        return {"intent": "search"}
-    if "is there" in q and "book" in q:
-        return {"intent": "search"}
-    
-    # 5. CATEGORY SEARCH
-    for cat in categories:
-        if cat in q and len(cat) > 2:
-            return {"intent": "search"}
-    if has_title:
-        return {"intent": "search"}
-    if "what are the books" in q or "books in library" in q or "what category" in q:
+    if "what are the books" in q or "books in library" in q or "what category" in q or "categories you have" in q:
         return {"intent": "count"}
-    if "book" in q and ("where" in q or "have" in q):
-        # where is book / where is python book -> search
-        # but where is house -> house not in titles -> dont know
-        if has_title or "book" in q:
-            # check if after where is there is a real title word
-            # if not title, but user explicitly says book, treat as search
-            if "book" in q:
-                return {"intent": "search"}
 
-    # 6. GENERAL KNOWLEDGE - apple, what is computer networks etc - 9th kid style
-    if any(w in q for w in ["what is","what are","define","colour","color","apple","mango"]):
+    # === LIMITED 9TH KID KNOWLEDGE - ONLY SIMPLE WORDS ===
+    ALLOWED_SIMPLE = ["book","apple","mango","banana","keyboard","mouse","computer","laptop","fruit","colour","color","orange","pen","paper","chair","table","school","library"]
+    COMPLEX_BLOCK = ["accelerator","break","brake","stars","count of stars","engine","vacuum","universe","galaxy","car","bike","aeroplane","rocket","planet"]
+    
+    if q.startswith("what is") or q.startswith("what are") or "colour of" in q or "color of" in q:
         if has_title:
             return {"intent": "search"}
-        # if not book title, allow 9th kid explanation
-        if not any(x in q for x in ["prime minister","king","queen","president"]):
-            return {"intent": "general_knowledge"}
-
-    # 7. WHERE IS HOUSE / WHERE IS MAAANATER -> IRRELEVANT -> DON'T KNOW
-    if "where is" in q or "where are" in q:
-        # If no book title found in query -> irrelevant
-        if not has_title:
+        # Block complex queries like car break accelerator, count of stars
+        if any(c in q for c in COMPLEX_BLOCK):
             return {"intent": "out_of_knowledge"}
+        # Allow only simple queries
+        words_in_q = q.replace("what is","").replace("what are","").replace("a","").replace("an","").replace("the","").replace("of","").replace("?","").strip().split()
+        meaningful = [w for w in words_in_q if len(w) > 2]
+        is_simple = False
+        for w in meaningful:
+            if w in ALLOWED_SIMPLE:
+                is_simple = True
+                break
+        if any(s in q for s in ["what is a book","what is an apple","what is a keyboard","what is book","colour of apple","color of apple"]):
+            is_simple = True
+        if is_simple:
+            return {"intent": "general_knowledge"}
+        else:
+            # If not simple and not a book title -> dont know
+            if not has_title:
+                return {"intent": "out_of_knowledge"}
+
+    if "is there" in q and "book" in q:
+        return {"intent": "search"}
+    if any(phrase in q for phrase in ["book called","book named","books about","book about","books related to"]):
+        return {"intent": "search"}
+
+    for cat in categories:
+        if cat in q and len(cat) > 2 and cat not in ["knowledge"]:
+            if "what is" not in q:
+                return {"intent": "search"}
+    if has_title:
+        return {"intent": "search"}
+
+    if "where is" in q or "where are" in q:
+        if not has_title and "book" not in q:
+            return {"intent": "out_of_knowledge"}
+        else:
+            return {"intent": "search"}
+
+    if "who are you" in q or "what are you" in q:
+        return {"intent": "who_are_you"}
 
     return {"intent": "out_of_knowledge"}
 
@@ -150,14 +156,14 @@ def out_of_knowledge_node(state: AgentState):
 def general_knowledge_node(state: AgentState):
     q = state["current_query"]
     try:
-        prompt = f"Explain '{q}' in exactly 3 simple sentences for 9th grade kid. Use easy words. Max 70 words."
+        prompt = f"Explain '{q}' in 1 simple sentence for 9th grade kid. Use easy words under 25 words. No extra details, no second sentence."
         res = llm.invoke(prompt)
         desc = res.content if hasattr(res,'content') else str(res)
         desc = desc.strip().replace("\n"," ")
         sentences = re.split(r'(?<=[.!?])\s+', desc)
-        desc = " ".join(sentences[:3])
-        if len(desc) > 350:
-            desc = desc[:350]
+        desc = sentences[0]  # ONLY 1 sentence - LIMIT KNOWLEDGE
+        if len(desc) > 150:
+            desc = desc[:150]
         return {"answer": f"{desc} 📚 For library books, tell me book name?"}
     except:
         return {"answer": "I don't know about that. I can help with books, rack, copies, and library rules."}
