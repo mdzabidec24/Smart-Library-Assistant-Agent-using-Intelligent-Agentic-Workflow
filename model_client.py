@@ -1,3 +1,3 @@
-from langchain_ollama import ChatOllama
+from langchain_ollama import OllamaLLM
 def get_llm():
-    return ChatOllama(model="llama3.2", temperature=0.2, num_predict=400)
+    return OllamaLLM(model="llama3.2", temperature=0.2)

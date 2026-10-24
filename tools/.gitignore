@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+.env
+tools/__pycache__/
+data/__pycache__/

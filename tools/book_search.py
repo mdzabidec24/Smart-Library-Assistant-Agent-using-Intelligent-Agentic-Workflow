@@ -53,6 +53,9 @@ def search_books_core(query, df, llm=None):
 
     return f"No books found: {query}"
 
+# Alias for old code
+search_books = search_books_core
+
 @tool
 def library_search_tool(query: str) -> str:
     """Search for books in library by title, author or category."""
