@@ -50,6 +50,23 @@ def contains_book_title(q, df):
 
 def router_node(state: AgentState):
     q = state["current_query"].lower().strip()
+    last_book = state.get("last_book")
+
+    # === ADDED: Pronoun handling for it, this, that ===
+    PRONOUN_PHRASES = [
+        "where is it", "where is this", "where is that",
+        "where is it?", "where is this?", "where is that?",
+        "who is author of it", "who is the author of it",
+        "who is author of this", "who is author of that",
+        "author of it", "author of this", "author of that",
+        "how much copies of it", "how many copies of it",
+        "copies of it", "copies of this", "copies of that",
+        "how much copies", "how many copies"
+    ]
+    # if query is pronoun or contains pronoun like "of it", "of this", "of that"
+    if q in PRONOUN_PHRASES or " of it" in q or " of this" in q or " of that" in q or q == "where is it" or q == "where is this" or q == "where is that" or q == "it" or q == "this" or q == "that":
+        if last_book:
+            return {"intent": "pronoun"}
     
     if is_gibberish_token(q):
         return {"intent": "out_of_knowledge"}
