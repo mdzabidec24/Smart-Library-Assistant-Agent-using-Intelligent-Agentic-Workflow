@@ -16,6 +16,24 @@ def get_llm():
     return OllamaLLM(model="llama3.2", temperature=0.2)
 llm = get_llm()
 
+# === LIBRARY INFO - FIXED FOR TIMINGS / WEDNESDAY / RULES ===
+def library_info(query: str):
+    q = query.lower().strip()
+    if q in ["hi","hello","hey","bye","good morning","good evening","thanks","thank you","ok","okay"]:
+        return "Hi! I am IntelliLib Agent. I know everything about our library - 80 books, racks, availability and basic GK. How can I help you?"
+    if "sunday" in q:
+        return "Library is closed on Sunday. Open from 9 AM to 6 PM, Monday to Saturday."
+    if any(k in q for k in ["timing","timings","working hours","hours","open","close","closed","when"]):
+        if "library" in q or "open" in q or "close" in q or "timing" in q or "hours" in q or "when" in q:
+            return "Library is open from 9 AM to 6 PM, Monday to Saturday."
+    if any(d in q for d in ["monday","tuesday","wednesday","thursday","friday","saturday"]):
+        return "Yes, library open on that day: Mon-Sat 9 AM to 6 PM, Sunday closed."
+    if "where" in q and "library" in q:
+        return "Our library is located on the 2nd floor, Main Building. It is open from 9 AM to 6 PM, Monday to Saturday."
+    if any(k in q for k in ["rule","return","fine","issue"]):
+        return "Books can be issued for 14 days. Late return fine is Rs. 10 per day. Library is open from 9 AM to 6 PM, Monday to Saturday."
+    return None
+
 class AgentState(TypedDict):
     current_query: str
     intent: str
@@ -52,19 +70,11 @@ def router_node(state: AgentState):
     q = state["current_query"].lower().strip()
     last_book = state.get("last_book")
 
-    # === ADDED: Pronoun handling for it, this, that ===
-    PRONOUN_PHRASES = [
-        "where is it", "where is this", "where is that",
-        "where is it?", "where is this?", "where is that?",
-        "who is author of it", "who is the author of it",
-        "who is author of this", "who is author of that",
-        "author of it", "author of this", "author of that",
-        "how much copies of it", "how many copies of it",
-        "copies of it", "copies of this", "copies of that",
-        "how much copies", "how many copies"
-    ]
-    # if query is pronoun or contains pronoun like "of it", "of this", "of that"
-    if q in PRONOUN_PHRASES or " of it" in q or " of this" in q or " of that" in q or q == "where is it" or q == "where is this" or q == "where is that" or q == "it" or q == "this" or q == "that":
+    # === Pronoun it / this / that ===
+    if any(p in q for p in [" of it"," of this"," of that","where is it","where is this","where is that","copies of it","author of it","author of this"]):
+        if last_book:
+            return {"intent": "pronoun"}
+    if q in ["it","this","that"]:
         if last_book:
             return {"intent": "pronoun"}
     
@@ -79,7 +89,7 @@ def router_node(state: AgentState):
         has_title = False
         categories = []
 
-    if q in ["hi","hello","hey","hai","hii","heya","yo","hola","namaste","bye","goodbye","see ya","tata","ok bye"]:
+    if q in ["hi","hello","hey","hai","hii","heya","yo","hola","namaste","bye","goodbye","see ya","tata","ok bye","good morning","good evening","thanks"]:
         return {"intent": "greeting"}
     if q.startswith(("hi ","hello ","hey ","hai ")) and len(q.split()) <= 2 and "book" not in q:
         return {"intent": "greeting"}
@@ -93,38 +103,32 @@ def router_node(state: AgentState):
         return {"intent": "payment_rule"}
     if "issue" in q and ("rule" in q or "book" in q):
         return {"intent": "issue_rule"}
-    if "library" in q and ("where" in q or "rule" in q or "time" in q or "open" in q or q == "library" or "libray" in q):
+
+    # Library info check - fixed timings
+    if library_info(q) is not None:
         return {"intent": "library_info"}
+
     if any(w in q for w in ["stock","share","nifty","sensex"]):
         return {"intent": "general_knowledge_block"}
 
     if "what are the books" in q or "books in library" in q or "what category" in q or "categories you have" in q:
         return {"intent": "count"}
 
-    # === LIMITED 9TH KID KNOWLEDGE - ONLY SIMPLE WORDS ===
     ALLOWED_SIMPLE = ["book","apple","mango","banana","keyboard","mouse","computer","laptop","fruit","colour","color","orange","pen","paper","chair","table","school","library"]
-    COMPLEX_BLOCK = ["accelerator","break","brake","stars","count of stars","engine","vacuum","universe","galaxy","car","bike","aeroplane","rocket","planet"]
+    COMPLEX_BLOCK = ["accelerator","break","brake","stars","count of stars","engine","vacuum","universe","galaxy","car","bike","aeroplane","rocket","planet","house"]
     
     if q.startswith("what is") or q.startswith("what are") or "colour of" in q or "color of" in q:
         if has_title:
             return {"intent": "search"}
-        # Block complex queries like car break accelerator, count of stars
         if any(c in q for c in COMPLEX_BLOCK):
             return {"intent": "out_of_knowledge"}
-        # Allow only simple queries
-        words_in_q = q.replace("what is","").replace("what are","").replace("a","").replace("an","").replace("the","").replace("of","").replace("?","").strip().split()
-        meaningful = [w for w in words_in_q if len(w) > 2]
-        is_simple = False
-        for w in meaningful:
-            if w in ALLOWED_SIMPLE:
-                is_simple = True
-                break
-        if any(s in q for s in ["what is a book","what is an apple","what is a keyboard","what is book","colour of apple","color of apple"]):
-            is_simple = True
+        words = re.findall(r'\b\w+\b', q)
+        stop = {"what","is","are","a","an","the","of"}
+        meaningful = [w for w in words if w not in stop and len(w) > 2]
+        is_simple = any(w in ALLOWED_SIMPLE for w in meaningful)
         if is_simple:
             return {"intent": "general_knowledge"}
         else:
-            # If not simple and not a book title -> dont know
             if not has_title:
                 return {"intent": "out_of_knowledge"}
 
@@ -173,12 +177,12 @@ def out_of_knowledge_node(state: AgentState):
 def general_knowledge_node(state: AgentState):
     q = state["current_query"]
     try:
-        prompt = f"Explain '{q}' in 1 simple sentence for 9th grade kid. Use easy words under 25 words. No extra details, no second sentence."
+        prompt = f"You are a 9th grade teacher. Explain '{q}' in 1 simple sentence, max 20 words, easy words. Do NOT mention library, rack, books, rules. Only simple GK."
         res = llm.invoke(prompt)
         desc = res.content if hasattr(res,'content') else str(res)
         desc = desc.strip().replace("\n"," ")
         sentences = re.split(r'(?<=[.!?])\s+', desc)
-        desc = sentences[0]  # ONLY 1 sentence - LIMIT KNOWLEDGE
+        desc = sentences[0]
         if len(desc) > 150:
             desc = desc[:150]
         return {"answer": f"{desc} 📚 For library books, tell me book name?"}
@@ -226,9 +230,9 @@ def book_price_node(state: AgentState):
         return {"answer": f"'{b['title']}' - {b['available_copies']} copies at Rack {b['rack_no']}. For price, contact manager."}
     return {"answer": "For price, contact manager at counter."}
 def library_info_node(state: AgentState):
-    q = state["current_query"].lower()
-    if "sunday" in q:
-        return {"answer": "Library closed Sunday. Open Mon-Sat 9 AM to 6 PM."}
+    ans = library_info(state["current_query"])
+    if ans:
+        return {"answer": ans}
     return {"answer": "Library open Mon-Sat 9 AM - 6 PM, Sun closed. Rules: Max 3 books for 14 days. Contact manager at counter."}
 def count_node(state: AgentState):
     df = pd.read_csv("data/library.csv")
