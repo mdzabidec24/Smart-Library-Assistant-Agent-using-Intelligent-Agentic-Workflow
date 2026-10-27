@@ -66,22 +66,37 @@ def contains_book_title(q, df):
     return False
 
 def router_node(state: AgentState):
-    q = state["current_query"].lower().strip()
+    q_raw = state["current_query"].lower().strip()
+    q = q_raw.replace("mcuh","much").replace("mucch","much").replace("muchh","much")
+    q = q.replace("abouut","about").replace("bok","book").replace("boook","book")
+    q = q.replace("gaems","games").replace("gaem","game").replace("developement","development")
+    q = q.replace("copys","copies").replace("copie","copies").replace("rackk","rack")
     last_book = state.get("last_book")
 
     if last_book:
-        if any(p in q for p in [" of it"," of this"," of that","where is it","where is this","where is that","copies of it","author of it","author of this","which rack","what rack","rack is it","rack of it","in which rack","in which rack is it"]):
-            return {"intent": "pronoun"}
-        if "rack" in q and ("it" in q.split() or "this" in q or "that" in q):
-            return {"intent": "pronoun"}
-    if any(p in q for p in [" of it"," of this"," of that","where is it","where is this","where is that","copies of it","author of it","author of this"]):
+        if any(p in q for p in [" of it"," of this"," of that","where is it","where is this","where is that","copies of it","author of it","author of this","which rack","what rack","rack is it","rack of it","in which rack","in which rack is it","is it available","is this available","is that available","available now","is it there","is it in stock","how many copies","how much copies","copies available","how much copy","availability","available","cost is that","price is that","how much cost","how much is it","how much is that","much is it","much is that"]):
+            if any(k in q for k in ["price","cost","mrp"]) and "copies" not in q:
+                return {"intent": "book_price"}
+            if "how much" in q and "copies" not in q and "copy" not in q:
+                if "cost" in q or "price" in q or "is it" in q or "is that" in q:
+                    return {"intent": "book_price"}
+            if "much is it" in q or "much is that" in q:
+                return {"intent": "book_price"}
+            return {"intent": "pronoun"} if "price" not in q and "cost" not in q and "mrp" not in q else {"intent": "book_price"}
+        if any(w in q for w in ["rack","copies","copy","available"]):
+            if "it" in q.split() or "this" in q or "that" in q:
+                return {"intent": "pronoun"}
+
+    if any(p in q for p in [" of it"," of this"," of that","where is it","where is this","where is that","copies of it","author of it"]):
         if last_book:
             return {"intent": "pronoun"}
-    if q in ["it","this","that"]:
+    if q in ["it","this","that","is it available now","available now","how many copies","how much copies","how much copies of it","how many copies of it","how much is it","how mcuh is it","much is it"]:
         if last_book:
+            if "much" in q:
+                return {"intent": "book_price"}
             return {"intent": "pronoun"}
-    
-    if is_gibberish_token(q):
+
+    if is_gibberish_token(q_raw):
         return {"intent": "out_of_knowledge"}
     
     try:
@@ -100,64 +115,69 @@ def router_node(state: AgentState):
         return {"intent": "manager"}
     if q in ["repeat","repeat that","say again","again"]:
         return {"intent": "repeat"}
+    if any(k in q for k in ["price","cost","mrp"]) and "copies" not in q:
+        return {"intent": "book_price"}
+    if "how much" in q and "copies" not in q and "copy" not in q and ("cost" in q or "price" in q or "is it" in q or "is that" in q):
+        return {"intent": "book_price"}
+    if "much is it" in q or "much is that" in q:
+        return {"intent": "book_price"} if last_book else {"intent": "out_of_knowledge"}
     if "fine" in q:
         return {"intent": "fine_rule"}
     if "payment" in q:
         return {"intent": "payment_rule"}
     if "issue" in q and ("rule" in q or "book" in q):
         return {"intent": "issue_rule"}
-
     if library_info(q) is not None:
         return {"intent": "library_info"}
-
     if any(w in q for w in ["stock","share","nifty","sensex"]):
         return {"intent": "general_knowledge_block"}
-
-    # --- FIXED FOR CATEGORIES ---
-    if any(p in q for p in ["what are the books","books in library","what category","categories","category of books","categories of books","list of categories","how many categories","types of books","what books"]):
+    if any(p in q for p in ["what are the books","books in library","what category","categories","category of books","categories of books","list of categories","how many categories","types of books","what books","categories of books are there"]):
         return {"intent": "count"}
-    if "categor" in q:  # catches category, categories
+    if "categor" in q:
         return {"intent": "count"}
 
-    ALLOWED_SIMPLE = ["book","apple","mango","banana","keyboard","mouse","computer","laptop","fruit","colour","color","orange","pen","paper","chair","table","school","library"]
-    COMPLEX_BLOCK = ["accelerator","break","brake","stars","count of stars","engine","vacuum","universe","galaxy","car","bike","aeroplane","rocket","planet","house"]
-    
-    if q.startswith("what is") or q.startswith("what are") or "colour of" in q or "color of" in q:
+    # === GK LIMITED TO SINGLE-WORD ONLY ===
+    if q.startswith("what is") or q.startswith("what are"):
         if has_title:
             return {"intent": "search"}
-        if any(c in q for c in COMPLEX_BLOCK):
+        # that/by/of/about/related = book relation or 2 intents -> block
+        if any(x in q for x in [" that ", " by ", " of ", " about ", " related to "]):
+            if "book" in q:
+                return {"intent": "search"}
             return {"intent": "out_of_knowledge"}
-        words = re.findall(r'\b\w+\b', q)
-        stop = {"what","is","are","a","an","the","of"}
-        meaningful = [w for w in words if w not in stop and len(w) > 2]
-        is_simple = any(w in ALLOWED_SIMPLE for w in meaningful)
-        if is_simple:
+        if " and " in q:
+            return {"intent": "out_of_knowledge"}
+        cleaned = q.replace("what is","").replace("what are","").replace("?","").replace(".","").strip()
+        words = [w for w in cleaned.split() if w not in ["the","a","an"]]
+        if len(words) != 1:
+            return {"intent": "out_of_knowledge"}
+        single = words[0].lower()
+        ALLOWED_GK = ["alien","rocket","country","apple","mango","banana","fruit","computer","laptop","pen","chair","table","school","orange","keyboard","mouse"]
+        if single in ALLOWED_GK:
             return {"intent": "general_knowledge"}
         else:
-            if not has_title:
-                return {"intent": "out_of_knowledge"}
+            return {"intent": "out_of_knowledge"}
+
+    if "colour of" in q or "color of" in q:
+        return {"intent": "out_of_knowledge"}
 
     if "is there" in q and "book" in q:
         return {"intent": "search"}
-    if any(phrase in q for phrase in ["book called","book named","books about","book about","books related to"]):
+    if any(phrase in q for phrase in ["book called","book named","books about","book about","books related to","book related to","about games","about development","development of games","about game"]):
         return {"intent": "search"}
-
     for cat in categories:
         if cat in q and len(cat) > 2 and cat not in ["knowledge"]:
             if "what is" not in q:
                 return {"intent": "search"}
     if has_title:
         return {"intent": "search"}
-
     if "where is" in q or "where are" in q:
         if not has_title and "book" not in q:
             return {"intent": "out_of_knowledge"}
         else:
             return {"intent": "search"}
-
     if "who are you" in q or "what are you" in q:
         return {"intent": "who_are_you"}
-
     return {"intent": "out_of_knowledge"}
 
 def greeting_node(state: AgentState):
@@ -195,6 +215,7 @@ def general_knowledge_node(state: AgentState):
         return {"answer": "I don't know about that. I can help with books, rack, copies, and library rules."}
 def general_knowledge_block_node(state: AgentState):
     return {"answer": "I can't give stock prices. I can help with books, rack, copies, library rules."}
+
 def pronoun_node(state: AgentState):
     book = state.get("last_book")
     if not book:
@@ -211,19 +232,35 @@ def pronoun_node(state: AgentState):
         pass
     copies = int(book.get('available_copies',0))
     q = state["current_query"].lower()
-    rec = recommend_books(book['title'], current_title=book['title'])
+    try:
+        df_for_rec = pd.read_csv("data/library.csv")
+    except:
+        df_for_rec = None
+    rec = recommend_books(book['title'], df=df_for_rec, current_title=book['title'])
+    if "available" in q or ("is it" in q and "there" in q) or ("is it" in q and "now" in q) or q in ["is it available","is it available now","is it available now?","available now"]:
+        if copies == 0:
+            return {"answer": f"Sorry, '{book['title']}' is not available now, will be coming soon! 📚{rec}"}
+        else:
+            return {"answer": f"Yes, '{book['title']}' is available - {copies} copies at Rack {book['rack_no']}.{rec}"}
+    if "copies" in q or "copy" in q or "how many" in q or "how much" in q and "copies" in q:
+        if copies == 0:
+            return {"answer": f"Sorry, '{book['title']}' is not available now, will be coming soon! 📚{rec}"}
+        return {"answer": f"'{book['title']}' has {copies} copies at Rack {book['rack_no']}.{rec}"}
     if copies == 0:
         return {"answer": f"Sorry, '{book['title']}' is not available now, will be coming soon! 📚{rec}"}
     if "author" in q:
         return {"answer": f"Author of '{book['title']}' is {book['author']} - {copies} copies at Rack {book['rack_no']}.{rec}"}
     return {"answer": f"'{book['title']}' is at Rack {book['rack_no']}, {copies} copies.{rec}"}
+
 def fine_rule_node(state: AgentState):
     return {"answer": "Fine Rule: First 14 days free, then Rs. 5/day/book. Pay at counter. Contact manager."}
 def payment_rule_node(state: AgentState):
     return {"answer": "Payment Rule: All payments at counter only. Contact manager."}
 def issue_rule_node(state: AgentState):
     return {"answer": "Issue Rule: Max 3 books for 14 days. Need library card. Contact manager."}
+
 def book_price_node(state: AgentState):
+    msg = "Payment is done at billing section. Contact manager for price details."
     df = pd.read_csv("data/library.csv")
     for col in ['title','category','author','rack_no']:
         df[col] = df[col].astype(str).str.strip()
@@ -231,11 +268,28 @@ def book_price_node(state: AgentState):
     result = search_books_core(state["current_query"], df, llm)
     if isinstance(result, list) and len(result)>0:
         book = result[0]
-        return {"answer": f"'{book['title']}' - {book['available_copies']} copies at Rack {book['rack_no']}. For price, contact manager.", "last_book": book}
+        try:
+            fresh_row = df[df['title'].str.lower() == str(book['title']).lower().strip()]
+            if not fresh_row.empty:
+                book['rack_no'] = str(fresh_row.iloc[0]['rack_no']).strip()
+                book['available_copies'] = int(fresh_row.iloc[0]['available_copies'])
+        except:
+            pass
+        rec = recommend_books(book['title'], df=df, current_title=book['title'])
+        return {"answer": f"'{book['title']}' - {book['available_copies']} copies at Rack {book['rack_no']}. {msg}{rec}", "last_book": book}
     if state.get("last_book"):
         b = state["last_book"]
-        return {"answer": f"'{b['title']}' - {b['available_copies']} copies at Rack {b['rack_no']}. For price, contact manager."}
-    return {"answer": "For price, contact manager at counter."}
+        try:
+            fresh = df[df['title'].str.lower() == str(b['title']).lower().strip()]
+            if not fresh.empty:
+                b['rack_no'] = str(fresh.iloc[0]['rack_no']).strip()
+                b['available_copies'] = int(fresh.iloc[0]['available_copies'])
+        except:
+            pass
+        rec = recommend_books(b['title'], df=df, current_title=b['title'])
+        return {"answer": f"'{b['title']}' - {b['available_copies']} copies at Rack {b['rack_no']}. {msg}{rec}", "last_book": b}
+    return {"answer": msg}
+
 def library_info_node(state: AgentState):
     ans = library_info(state["current_query"])
     if ans:
@@ -251,12 +305,30 @@ def count_node(state: AgentState):
             return {"answer": f"We have {len(filt)} {cat} books: {titles}"}
     cats = df['category'].unique()
     return {"answer": f"We have {len(cats)} categories: {', '.join(cats)}."}
+
 def search_node(state: AgentState):
     df = pd.read_csv("data/library.csv")
     for col in ['title','category','author','rack_no']:
         df[col] = df[col].astype(str).str.strip()
     df['available_copies'] = pd.to_numeric(df['available_copies'], errors='coerce').fillna(0).astype(int)
     result = search_books_core(state["current_query"], df, llm)
+    if isinstance(result, str) and "No books found" in result:
+        q = state["current_query"].lower().replace("mcuh","much").replace("gaems","games").replace("gaem","game")
+        tokens = [t for t in re.findall(r'\w+', q) if len(t)>2 and t not in ["there","book","books","about","related","there","is","are","the","for","of","to","development"]]
+        if "game" in q or "games" in q:
+            tokens.append("game")
+        if "development" in q or "develop" in q:
+            tokens.append("game")
+            tokens.append("development")
+        if tokens:
+            mask = pd.Series([False]*len(df))
+            for tok in tokens:
+                base = tok.rstrip('s')
+                mask = mask | df['title'].str.lower().str.contains(base, na=False)
+                mask = mask | df['category'].str.lower().str.contains(base, na=False)
+            matched = df[mask]
+            if not matched.empty:
+                result = matched.to_dict(orient='records')
     if isinstance(result, str) and "No books found" in result:
         return {"answer": f"Sorry, that book not found now, will be coming soon! We have: {', '.join(df['category'].unique())}.", "last_book": None}
     if isinstance(result, list) and len(result)>0:
