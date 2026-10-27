@@ -16,7 +16,6 @@ def get_llm():
     return OllamaLLM(model="llama3.2", temperature=0.2)
 llm = get_llm()
 
-# === LIBRARY INFO - FIXED FOR TIMINGS / WEDNESDAY / RULES ===
 def library_info(query: str):
     q = query.lower().strip()
     if q in ["hi","hello","hey","bye","good morning","good evening","thanks","thank you","ok","okay"]:
@@ -70,7 +69,11 @@ def router_node(state: AgentState):
     q = state["current_query"].lower().strip()
     last_book = state.get("last_book")
 
-    # === Pronoun it / this / that ===
+    if last_book:
+        if any(p in q for p in [" of it"," of this"," of that","where is it","where is this","where is that","copies of it","author of it","author of this","which rack","what rack","rack is it","rack of it","in which rack","in which rack is it"]):
+            return {"intent": "pronoun"}
+        if "rack" in q and ("it" in q.split() or "this" in q or "that" in q):
+            return {"intent": "pronoun"}
     if any(p in q for p in [" of it"," of this"," of that","where is it","where is this","where is that","copies of it","author of it","author of this"]):
         if last_book:
             return {"intent": "pronoun"}
@@ -104,14 +107,16 @@ def router_node(state: AgentState):
     if "issue" in q and ("rule" in q or "book" in q):
         return {"intent": "issue_rule"}
 
-    # Library info check - fixed timings
     if library_info(q) is not None:
         return {"intent": "library_info"}
 
     if any(w in q for w in ["stock","share","nifty","sensex"]):
         return {"intent": "general_knowledge_block"}
 
-    if "what are the books" in q or "books in library" in q or "what category" in q or "categories you have" in q:
+    # --- FIXED FOR CATEGORIES ---
+    if any(p in q for p in ["what are the books","books in library","what category","categories","category of books","categories of books","list of categories","how many categories","types of books","what books"]):
+        return {"intent": "count"}
+    if "categor" in q:  # catches category, categories
         return {"intent": "count"}
 
     ALLOWED_SIMPLE = ["book","apple","mango","banana","keyboard","mouse","computer","laptop","fruit","colour","color","orange","pen","paper","chair","table","school","library"]
@@ -197,6 +202,8 @@ def pronoun_node(state: AgentState):
     try:
         df_fresh = pd.read_csv("data/library.csv")
         df_fresh['title'] = df_fresh['title'].astype(str).str.strip()
+        df_fresh['rack_no'] = df_fresh['rack_no'].astype(str).str.strip()
+        df_fresh['available_copies'] = pd.to_numeric(df_fresh['available_copies'], errors='coerce').fillna(0).astype(int)
         fresh = df_fresh[df_fresh['title'].str.lower() == str(book['title']).lower().strip()]
         if not fresh.empty:
             book = fresh.iloc[0].to_dict()
@@ -254,6 +261,13 @@ def search_node(state: AgentState):
         return {"answer": f"Sorry, that book not found now, will be coming soon! We have: {', '.join(df['category'].unique())}.", "last_book": None}
     if isinstance(result, list) and len(result)>0:
         book = result[0]
+        try:
+            fresh_row = df[df['title'].str.lower() == str(book['title']).lower().strip()]
+            if not fresh_row.empty:
+                book['rack_no'] = str(fresh_row.iloc[0]['rack_no']).strip()
+                book['available_copies'] = int(fresh_row.iloc[0]['available_copies'])
+        except:
+            pass
         if int(book['available_copies']) == 0:
             return {"answer": f"Sorry, '{book['title']}' is not available now, will be coming soon! 📚", "last_book": book}
         try:
